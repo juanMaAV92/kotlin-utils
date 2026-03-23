@@ -60,21 +60,41 @@ val result = flow(OrderContext("order-1", userId = "user-1"), logger) {
 - `AsyncStep`: fire-and-forget para side effects no criticos
 - DSL declarativo para composicion de flujos
 
-### Exception
+### Logger — Structured JSON Logging
 
-`PlatformException` — excepcion base con codigo, mensajes, HTTP status, timestamp y detalles.
+JSON plano directo a stdout. Sin JSON anidado. Compatible con Grafana/Loki/CloudWatch.
 
 ```kotlin
-throw PlatformException(
-    code = "ORDER_NOT_FOUND",
-    message = "Order 123 not found",
-    httpStatus = 404,
-)
+// Sin tracing (Compose, CLI)
+val logger = JsonStructuredLogger(serviceName = "pos-desktop")
+
+// Con OpenTelemetry (Ktor, Quarkus)
+val logger = JsonStructuredLogger(serviceName = "pos-server", traceProvider = { ... })
+
+// Uso
+logger.info("process_payment", "Payment processed", mapOf("amount" to 50000))
+```
+
+Output:
+```json
+{"time":"2026-03-22T10:15:30Z","level":"info","service":"pos-server","step":"process_payment","message":"Payment processed","trace_id":"abc","span_id":"def","attributes":{"amount":50000}}
+```
+
+### Exception — Jerarquia de errores
+
+Dos niveles: `PlatformException` (base, cualquier contexto) y `HttpException` (APIs).
+
+```kotlin
+// Compose, CLI — sin HTTP
+throw PlatformException(code = "ORDER_NOT_FOUND", message = "Order 123 not found")
+
+// Ktor, Quarkus — con HTTP status
+throw HttpException(code = "ORDER_NOT_FOUND", message = "Order 123 not found", httpStatus = 404)
 ```
 
 ### Context
 
-`FlowContext` — contexto base con trazabilidad (`correlationId`, `userId`, `tenantId`, `metadata`).
+`FlowContext` — contexto base con trazabilidad (`traceId`, `userId`, `tenantId`, `metadata`).
 
 ## Compatibilidad
 
