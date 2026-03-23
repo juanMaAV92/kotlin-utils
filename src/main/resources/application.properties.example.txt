@@ -1,0 +1,24 @@
+# ============================================
+# JuanmaAV Kotlin Utils - Configuration Example
+# ============================================
+
+# Application Name
+quarkus.application.name=kotlin-utils-service
+
+# ============================================
+# Logging Configuration
+# ============================================
+quarkus.log.level=INFO
+quarkus.log.console.format=%d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%c{3.}] (%t) %s%e%n
+
+# ============================================
+# OpenTelemetry Configuration (Optional)
+# ============================================
+# quarkus.otel.enabled=true
+# quarkus.otel.exporter.otlp.endpoint=http://localhost:4317
+
+# ============================================
+# Jackson Configuration
+# ============================================
+quarkus.jackson.fail-on-empty-beans=false
+quarkus.jackson.write-dates-as-timestamps=false

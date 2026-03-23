@@ -1,23 +1,23 @@
 plugins {
-    kotlin("jvm") version "2.0.0"
-    id("io.quarkus") version "3.12.3"
+    kotlin("jvm") version "2.2.21"
     id("maven-publish")
     `java-library`
+    id("org.jlleitschuh.gradle.ktlint") version "12.1.2"
 }
 
 group = "com.juanmaav"
-version = "0.0.1-SNAPSHOT"
+version = "0.1.0"
 
 repositories {
     mavenCentral()
-    mavenLocal()
 }
 
 dependencies {
-    implementation(enforcedPlatform("io.quarkus.platform:quarkus-bom:3.12.3"))
-    implementation("io.quarkus:quarkus-kotlin")
-    implementation("io.quarkus:quarkus-arc")
-    testImplementation("io.quarkus:quarkus-junit5")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    implementation("org.slf4j:slf4j-api:2.0.17")
+
+    testImplementation(kotlin("test"))
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 }
 
 java {
@@ -29,4 +29,8 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
     }
+}
+
+tasks.test {
+    useJUnitPlatform()
 }

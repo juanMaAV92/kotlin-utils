@@ -1,0 +1,29 @@
+# kotlin-utils — Agent Guide
+
+## What is this project?
+Framework-agnostic Kotlin utility library. Core feature: Flow Engine (Saga pattern orchestration).
+
+## Architecture rules
+- **No framework dependencies.** Only `kotlinx-coroutines` and `slf4j`. Never add Quarkus, Spring, Ktor, Mutiny, Reactor, or any framework-specific dependency.
+- **All async APIs must be `suspend fun`.** Never use `Uni`, `Mono`, `Deferred`, or other reactive wrappers in public APIs.
+- **Logging via SLF4J only.** No JBoss Logging, Logback direct, or println.
+- **Package structure:** `com.juanmaav.platform.{module}`. Current modules: `flow`, `context`, `exception`.
+
+## Flow Engine patterns
+- `Step<T>` interface: `suspend fun execute(context: T): T` + `suspend fun onFailure(context: T)` for compensation.
+- `FlowEngine` runs steps sequentially with per-step `withTimeout`. On failure, compensates executed steps in reverse order.
+- `ParallelStep` uses `coroutineScope { async {} }` for concurrency.
+- `AsyncStep` uses `scope.launch {}` for fire-and-forget (no compensation).
+- DSL entry point: `flow(context, logger) { step(...); parallel { ... } }`.
+
+## When adding new modules
+- Keep them framework-agnostic.
+- Use `suspend fun` for any async operation.
+- Accept `Logger` (SLF4J) as constructor parameter, don't create loggers internally.
+- Extend `FlowContext` if the module participates in flow orchestration.
+- Add tests in `src/test/kotlin` using `kotlinx-coroutines-test`.
+
+## Code style
+- Kotlin, ktlint enforced.
+- JVM 21 target.
+- Keep it minimal — no unnecessary abstractions.
