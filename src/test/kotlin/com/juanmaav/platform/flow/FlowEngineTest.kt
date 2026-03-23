@@ -1,15 +1,55 @@
 package com.juanmaav.platform.flow
 
 import com.juanmaav.platform.context.FlowContext
+import com.juanmaav.platform.exception.PlatformException
 import com.juanmaav.platform.flow.dsl.flow
+import com.juanmaav.platform.logger.StructuredLogger
 import kotlinx.coroutines.test.runTest
-import org.slf4j.LoggerFactory
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class FlowEngineTest {
-    private val logger = LoggerFactory.getLogger(FlowEngineTest::class.java)
+    class TestLogger : StructuredLogger {
+        val errorLogs = mutableListOf<String>()
+        val errorAttributes = mutableListOf<Map<String, Any?>>()
+
+        override fun fatal(
+            step: String,
+            message: String,
+            attributes: Map<String, Any?>,
+        ) {}
+
+        override fun error(
+            step: String,
+            message: String,
+            error: Throwable?,
+            attributes: Map<String, Any?>,
+        ) {
+            errorLogs.add(message)
+            errorAttributes.add(attributes)
+        }
+
+        override fun warn(
+            step: String,
+            message: String,
+            attributes: Map<String, Any?>,
+        ) {}
+
+        override fun info(
+            step: String,
+            message: String,
+            attributes: Map<String, Any?>,
+        ) {}
+
+        override fun debug(
+            step: String,
+            message: String,
+            attributes: Map<String, Any?>,
+        ) {}
+    }
+
+    private val logger = TestLogger()
 
     class TestContext(userId: String) : FlowContext(userId = userId) {
         var step1Executed = false
@@ -99,5 +139,34 @@ class FlowEngineTest {
 
             assertTrue(context.step1Executed, "Step1 should have been executed")
             assertTrue(context.compensationExecuted, "Step1 should have been compensated")
+        }
+
+    @Test
+    fun `should log PlatformException details on failure`() =
+        runTest {
+            val context = TestContext("user-1")
+
+            class MyPlatformStep : Step<TestContext> {
+                override suspend fun execute(context: TestContext): TestContext {
+                    throw PlatformException(
+                        "ERR_456",
+                        listOf("Business failure"),
+                        details = mapOf("reason" to "out of stock"),
+                    )
+                }
+            }
+
+            try {
+                flow(context, logger) {
+                    step(MyPlatformStep())
+                }
+            } catch (e: PlatformException) {
+                assertEquals("ERR_456", e.code)
+            }
+
+            val attrs = logger.errorAttributes.last()
+            assertEquals("ERR_456", attrs["error_code"])
+            assertEquals(mapOf("reason" to "out of stock"), attrs["error_details"])
+            assertEquals(context.traceId, attrs["traceId"])
         }
 }

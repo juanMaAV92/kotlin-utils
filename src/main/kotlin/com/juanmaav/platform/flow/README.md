@@ -1,45 +1,58 @@
 # Flow Orchestration & DSL
 
-Motor de orquestación reactivo con soporte para Sagas (compensaciones) y ejecución asíncrona/paralela.
+Motor de orquestacion con soporte para Sagas (compensaciones) y ejecucion asincrona/paralela. Usa `StructuredLogger` y `PlatformException` de la propia lib.
 
 ### 1. Definir el Contexto
-Todo flujo requiere un objeto que extienda de `FlowContext`.
 
 ```kotlin
 data class OrderContext(
     val orderId: String,
-    userId: String? = null
+    userId: String? = null,
 ) : FlowContext(userId = userId)
 ```
 
-### 2. Definición de Pasos (Steps)
-Implementa `Step<T>` para tu contexto específico.
+### 2. Definir Steps
 
 ```kotlin
 class SaveOrderStep : Step<OrderContext> {
-    override fun execute(ctx: OrderContext): Uni<OrderContext> = // Lógica...
-    override fun onFailure(ctx: OrderContext): Uni<Void> = // Compensación (Saga)
-    
+    override suspend fun execute(ctx: OrderContext): OrderContext {
+        // logica...
+        return ctx
+    }
+
+    override suspend fun onFailure(ctx: OrderContext) {
+        // compensacion (Saga)
+    }
+
     // Cambiar timeout (por defecto 30s)
     override val timeout: Duration = Duration.ofSeconds(10)
 }
 ```
 
-### 3. Timeouts e Implicaciones
-Si un paso excede su tiempo de ejecución (`timeout`):
-1. El motor lanza una excepción de timeout.
-2. Se detiene el flujo principal inmediatamente.
-3. **Saga Trigger**: Se ejecutan los `onFailure` de todos los pasos completados previamente en orden inverso para asegurar la consistencia.
+### 3. Timeouts e implicaciones
+
+Si un paso excede su `timeout`:
+1. El motor lanza una excepcion de timeout.
+2. Se detiene el flujo inmediatamente.
+3. **Saga**: Se ejecutan los `onFailure` de todos los pasos ejecutados en orden inverso.
 
 ### 4. Uso del DSL
+
 ```kotlin
-flow(context, logger) {
+val result = flow(context, logger) {
     step(ValidateStep())       // Secuencial
-    asyncStep(NotifyStep())    // Fire & Forget (No bloqueante, no dispara Saga si falla)
-    
-    parallel {                 // Ejecución simultánea (Fork-Join)
+    asyncStep(NotifyStep())    // Fire & Forget (no dispara Saga si falla)
+
+    parallel {                 // Ejecucion simultanea (Fork-Join)
         step(AuditStep())
         step(IndexStep())
     }
-}.subscribe().with { ctx -> ... }
+}
 ```
+
+### 5. Logging integrado
+
+El `FlowEngine` loggea automaticamente con `StructuredLogger`:
+- Inicio y fin de cada step
+- Errores con `traceId`, `error_code` y `error_details` (si es `PlatformException`)
+- Compensaciones y sus fallos

@@ -5,12 +5,12 @@ import com.juanmaav.platform.flow.AsyncStep
 import com.juanmaav.platform.flow.FlowEngine
 import com.juanmaav.platform.flow.ParallelStep
 import com.juanmaav.platform.flow.Step
+import com.juanmaav.platform.logger.StructuredLogger
 import kotlinx.coroutines.coroutineScope
-import org.slf4j.Logger
 
 class FlowBuilder<T : FlowContext>(
     private val context: T,
-    private val logger: Logger,
+    private val logger: StructuredLogger,
     private val scope: kotlinx.coroutines.CoroutineScope,
 ) {
     private val steps = mutableListOf<Step<T>>()
@@ -44,7 +44,7 @@ class ParallelBuilder<T : FlowContext> {
 
 suspend fun <T : FlowContext> flow(
     context: T,
-    logger: Logger,
+    logger: StructuredLogger,
     init: FlowBuilder<T>.() -> Unit,
 ): T =
     coroutineScope {

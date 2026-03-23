@@ -1,10 +1,11 @@
 package com.juanmaav.platform.flow
 
 import com.juanmaav.platform.context.FlowContext
+import com.juanmaav.platform.exception.PlatformException
+import com.juanmaav.platform.logger.StructuredLogger
 import kotlinx.coroutines.withTimeout
-import org.slf4j.Logger
 
-class FlowEngine<T : FlowContext>(private val logger: Logger) {
+class FlowEngine<T : FlowContext>(private val logger: StructuredLogger) {
     suspend fun run(
         context: T,
         steps: List<Step<T>>,
@@ -14,7 +15,9 @@ class FlowEngine<T : FlowContext>(private val logger: Logger) {
         try {
             var currentContext = context
             for (step in steps) {
-                logger.debug("Executing step: ${step::class.simpleName}")
+                val stepName = step::class.simpleName ?: "UnknownStep"
+                logger.debug(stepName, "Executing step", mapOf("traceId" to context.traceId))
+
                 executedSteps.add(step)
                 currentContext =
                     withTimeout(step.timeout.toMillis()) {
@@ -23,7 +26,18 @@ class FlowEngine<T : FlowContext>(private val logger: Logger) {
             }
             return currentContext
         } catch (e: Exception) {
-            logger.error("Flow failed: ${e.message}. Starting compensation.")
+            val attributes =
+                mutableMapOf<String, Any?>(
+                    "traceId" to context.traceId,
+                    "error_message" to e.message,
+                )
+
+            if (e is PlatformException) {
+                attributes["error_code"] = e.code
+                attributes["error_details"] = e.details
+            }
+
+            logger.error("flow_engine", "Flow failed, starting compensation", e, attributes)
             compensate(context, executedSteps.reversed())
             throw e
         }
@@ -34,11 +48,17 @@ class FlowEngine<T : FlowContext>(private val logger: Logger) {
         steps: List<Step<T>>,
     ) {
         for (step in steps) {
+            val stepName = step::class.simpleName ?: "UnknownStep"
             try {
-                logger.debug("Compensating step: ${step::class.simpleName}")
+                logger.debug(stepName, "Compensating step", mapOf("traceId" to context.traceId))
                 step.onFailure(context)
             } catch (e: Exception) {
-                logger.warn("Compensation failed for ${step::class.simpleName}: ${e.message}")
+                logger.error(
+                    stepName,
+                    "Compensation failed",
+                    e,
+                    mapOf("traceId" to context.traceId, "original_error" to e.message),
+                )
             }
         }
     }

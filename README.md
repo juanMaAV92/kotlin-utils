@@ -59,6 +59,7 @@ val result = flow(OrderContext("order-1", userId = "user-1"), logger) {
 - `ParallelStep`: ejecucion concurrente con `async`/`awaitAll`
 - `AsyncStep`: fire-and-forget para side effects no criticos
 - DSL declarativo para composicion de flujos
+- Logging integrado con `StructuredLogger` (traceId, error_code, error_details si es `PlatformException`)
 
 ### Logger — Structured JSON Logging
 
@@ -80,16 +81,36 @@ Output:
 {"time":"2026-03-22T10:15:30Z","level":"info","service":"pos-server","step":"process_payment","message":"Payment processed","trace_id":"abc","span_id":"def","attributes":{"amount":50000}}
 ```
 
-### Exception — Jerarquia de errores
+### Exception — Jerarquia de errores y responses estandarizados
 
-Dos niveles: `PlatformException` (base, cualquier contexto) y `HttpException` (APIs).
+La lib centraliza el formato de errores. El handler lo escribes una vez por framework.
+
+```
+PlatformException (base)  →  ErrorResponse
+└── HttpException (APIs)  →  HttpErrorResponse
+    ├── ForbiddenException (403)
+    └── UnauthorizedException (401)
+```
 
 ```kotlin
-// Compose, CLI — sin HTTP
+// Lanzar errores
 throw PlatformException(code = "ORDER_NOT_FOUND", message = "Order 123 not found")
-
-// Ktor, Quarkus — con HTTP status
 throw HttpException(code = "ORDER_NOT_FOUND", message = "Order 123 not found", httpStatus = 404)
+throw ForbiddenException()
+throw UnauthorizedException("Token expired")
+
+// Convertir a response estandarizado
+val error = exception.toErrorResponse()          // ErrorResponse
+val error = httpException.toHttpErrorResponse()   // HttpErrorResponse (incluye httpStatus)
+```
+
+Handler en Ktor (una vez):
+```kotlin
+install(StatusPages) {
+    exception<HttpException> { call, e ->
+        call.respond(HttpStatusCode.fromValue(e.httpStatus), e.toHttpErrorResponse())
+    }
+}
 ```
 
 ### Context
