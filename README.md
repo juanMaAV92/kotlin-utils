@@ -113,6 +113,25 @@ install(StatusPages) {
 }
 ```
 
+### Retry — Exponential Backoff
+
+Retry con backoff exponencial para errores transitorios. Solo reintenta lo que tiene sentido (timeouts, 503, connection errors). No reintenta 400, 401, 403.
+
+```kotlin
+// Defaults: 3 intentos, 100ms inicial, factor 2x
+val invoice = retry { dianClient.sendInvoice(data) }
+
+// Customizado
+val ticket = retry(maxAttempts = 5, initialDelay = 2.seconds, logger = logger) {
+    cloudBackend.renewLicense(deviceId)
+}
+
+// Override del criterio
+retry(retryIf = { it is HttpException && it.httpStatus == 429 }) {
+    externalApi.call()
+}
+```
+
 ### Context
 
 `FlowContext` — contexto base con trazabilidad (`traceId`, `userId`, `tenantId`, `metadata`).

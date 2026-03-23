@@ -6,7 +6,7 @@
 - Use the lib's own `StructuredLogger` and `PlatformException`/`HttpException` inside all internal packages. Eat your own dog food.
 - Use manual JSON serialization (StringBuilder). No Jackson, no Gson.
 - Make integrations pluggable via interfaces or lambdas (e.g. `TraceProvider`).
-- Follow existing package convention: `com.juanmaav.platform.{module}`.
+- Follow existing package convention: `com.juanmaav.platform.{module}`. Current modules: `flow`, `context`, `exception`, `logger`, `retry`.
 - Write tests with `kotlinx-coroutines-test` and `kotlin-test`.
 - Run ktlint before committing.
 
