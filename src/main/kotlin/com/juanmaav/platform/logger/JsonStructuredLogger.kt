@@ -88,10 +88,17 @@ class JsonStructuredLogger(
             sb.append(",").appendField("span_id", trace.spanId)
         }
 
-        if (attributes.isNotEmpty()) {
+        // Promote traceId from attributes to root level if not already set by TraceProvider
+        val traceIdFromAttr = attributes["traceId"]
+        if (trace == null && traceIdFromAttr != null) {
+            sb.append(",").appendField("trace_id", traceIdFromAttr)
+        }
+
+        val remainingAttrs = attributes.filterKeys { it != "traceId" }
+        if (remainingAttrs.isNotEmpty()) {
             sb.append(",\"attributes\":{")
             var first = true
-            for ((key, value) in attributes) {
+            for ((key, value) in remainingAttrs) {
                 if (!first) sb.append(",")
                 sb.appendField(key, value)
                 first = false
