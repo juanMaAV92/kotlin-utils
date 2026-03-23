@@ -34,3 +34,21 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
 tasks.test {
     useJUnitPlatform()
 }
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+        }
+    }
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/juanmaAV/kotlin-utils")
+            credentials {
+                username = System.getenv("GITHUB_USERNAME")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+}
