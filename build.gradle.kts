@@ -44,7 +44,7 @@ publishing {
     repositories {
         maven {
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/juanmaAV/kotlin-utils")
+            url = uri("https://maven.pkg.github.com/juanMaAV92/kotlin-utils")
             credentials {
                 username = System.getenv("GITHUB_USERNAME")
                 password = System.getenv("GITHUB_TOKEN")
