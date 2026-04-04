@@ -18,7 +18,7 @@ class JsonStructuredLogger(
         attributes: Map<String, Any?>,
     ) {
         if (!slf4j.isErrorEnabled) return
-        slf4j.error(buildJson("fatal", step, message, attributes))
+        slf4j.error(buildJson("FATAL", step, message, attributes))
     }
 
     override fun error(
@@ -38,7 +38,7 @@ class JsonStructuredLogger(
             } else {
                 attributes
             }
-        slf4j.error(buildJson("error", step, message, attrs))
+        slf4j.error(buildJson("ERROR", step, message, attrs))
     }
 
     override fun warn(
@@ -47,7 +47,7 @@ class JsonStructuredLogger(
         attributes: Map<String, Any?>,
     ) {
         if (!slf4j.isWarnEnabled) return
-        slf4j.warn(buildJson("warn", step, message, attributes))
+        slf4j.warn(buildJson("WARN", step, message, attributes))
     }
 
     override fun info(
@@ -56,7 +56,7 @@ class JsonStructuredLogger(
         attributes: Map<String, Any?>,
     ) {
         if (!slf4j.isInfoEnabled) return
-        slf4j.info(buildJson("info", step, message, attributes))
+        slf4j.info(buildJson("INFO", step, message, attributes))
     }
 
     override fun debug(
@@ -65,7 +65,7 @@ class JsonStructuredLogger(
         attributes: Map<String, Any?>,
     ) {
         if (!slf4j.isDebugEnabled) return
-        slf4j.debug(buildJson("debug", step, message, attributes))
+        slf4j.debug(buildJson("DEBUG", step, message, attributes))
     }
 
     private fun buildJson(
@@ -94,16 +94,10 @@ class JsonStructuredLogger(
             sb.append(",").appendField("trace_id", traceIdFromAttr)
         }
 
+        // All extra fields are flat at root — consistent with Go slog output for Grafana/DD indexing
         val remainingAttrs = attributes.filterKeys { it != "traceId" }
-        if (remainingAttrs.isNotEmpty()) {
-            sb.append(",\"attributes\":{")
-            var first = true
-            for ((key, value) in remainingAttrs) {
-                if (!first) sb.append(",")
-                sb.appendField(key, value)
-                first = false
-            }
-            sb.append("}")
+        for ((key, value) in remainingAttrs) {
+            sb.append(",").appendField(key, value)
         }
 
         sb.append("}")
