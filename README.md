@@ -1,5 +1,10 @@
 # kotlin-utils
 
+[![CI](https://github.com/juanMaAV92/kotlin-utils/actions/workflows/ci.yml/badge.svg)](https://github.com/juanMaAV92/kotlin-utils/actions/workflows/ci.yml)
+![Kotlin](https://img.shields.io/badge/Kotlin-2.2-7F52FF?logo=kotlin&logoColor=white)
+![JVM](https://img.shields.io/badge/JVM-21-orange)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 Libreria de utilidades para proyectos Kotlin. **Framework-agnostic** — funciona con Ktor, Quarkus, Spring, Compose, o cualquier proyecto Kotlin/JVM.
 
 ## Principios
