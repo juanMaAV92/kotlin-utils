@@ -10,6 +10,8 @@
 Libreria de utilidades para proyectos Kotlin. **Framework-agnostic** — funciona con Ktor, Quarkus, Spring, Compose, o cualquier proyecto Kotlin/JVM.
 
 > Documentacion interactiva: **https://juanmaav92.github.io/kotlin-utils**
+>
+> Ejemplo real: [kotlin-quarkus-blueprint](https://github.com/juanMaAV92/kotlin-quarkus-blueprint) — template de microservicio Quarkus con arquitectura hexagonal que integra Flow Engine (saga), logger con OpenTelemetry, retry, validation y exception mappers.
 
 ## Principios
 
