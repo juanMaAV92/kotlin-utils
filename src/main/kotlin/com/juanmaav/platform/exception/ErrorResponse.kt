@@ -1,13 +1,15 @@
 package com.juanmaav.platform.exception
 
-data class ErrorResponse(
+/** Standardised error payload produced by [PlatformException.toErrorResponse]. */
+public data class ErrorResponse(
     val code: String,
     val messages: List<String>,
     val timestamp: String,
     val details: Map<String, Any> = emptyMap(),
 )
 
-data class HttpErrorResponse(
+/** [ErrorResponse] variant with the HTTP status, produced by [HttpException.toHttpErrorResponse]. */
+public data class HttpErrorResponse(
     val code: String,
     val messages: List<String>,
     val timestamp: String,

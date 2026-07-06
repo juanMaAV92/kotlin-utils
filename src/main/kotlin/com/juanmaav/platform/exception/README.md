@@ -24,6 +24,9 @@ throw HttpException(code = "ORDER_NOT_FOUND", message = "Order 123 not found", h
 throw ForbiddenException()  // 403, code = "FORBIDDEN"
 throw UnauthorizedException()  // 401, code = "UNAUTHORIZED"
 throw ForbiddenException("Cannot delete admin users")  // mensaje custom
+
+// Envolver otra excepcion — conserva la cadena original (cause)
+throw PlatformException(code = "DB_ERROR", message = "Insert failed", cause = e)
 ```
 
 ## Error Responses

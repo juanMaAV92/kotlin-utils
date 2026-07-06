@@ -48,6 +48,7 @@ Solo errores transitorios:
 | `HttpException` 408, 429, 500, 502, 503, 504 | si |
 | `HttpException` 400, 401, 403, 404 | no |
 | `PlatformException` | no |
+| `CancellationException` (coroutines) | nunca — se relanza inmediato |
 | Cualquier otro | no |
 
 ## Override del criterio
@@ -69,5 +70,5 @@ retry(retryIf = { it is SQLException }) {
 Si pasas un `logger`, cada reintento genera:
 
 ```json
-{"level":"warn","step":"retry","message":"Attempt 1/3 failed, retrying in 100ms","attributes":{"attempt":1,"max_attempts":3,"delay_ms":100,"error_type":"SocketTimeoutException","error_message":"Connect timed out"}}
+{"level":"WARN","step":"retry","message":"Attempt 1/3 failed, retrying in 100ms","attempt":1,"max_attempts":3,"delay_ms":100,"error_type":"SocketTimeoutException","error_message":"Connect timed out"}
 ```

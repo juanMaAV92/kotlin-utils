@@ -1,10 +1,14 @@
 package com.juanmaav.platform.logger
 
-fun interface TraceProvider {
-    fun currentTrace(): TraceInfo?
+/**
+ * Bridge to an external tracing system (e.g. OpenTelemetry). Return `null` when there is
+ * no active trace.
+ */
+public fun interface TraceProvider {
+    public fun currentTrace(): TraceInfo?
 }
 
-data class TraceInfo(
+public data class TraceInfo(
     val traceId: String,
     val spanId: String,
 )

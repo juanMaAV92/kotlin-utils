@@ -1,6 +1,6 @@
 # Logger
 
-Structured JSON logging directo a stdout. Sin JSON anidado — cada log es una linea JSON plana que Grafana/Loki/CloudWatch parsean directo.
+Structured JSON logging via `slf4j`. Sin JSON anidado — cada log es una linea JSON plana (atributos en la raiz) que Grafana/Loki/CloudWatch parsean directo.
 
 ## Setup
 
@@ -32,7 +32,7 @@ logger.error("validate_stock", "Insufficient stock", error = ex, mapOf("productI
 Una linea, un JSON. Sin wrapping de frameworks.
 
 ```json
-{"time":"2026-03-22T10:15:30Z","level":"info","service":"pos-server","step":"process_payment","message":"Payment processed","trace_id":"abc123","span_id":"def456","attributes":{"amount":50000,"method":"cash"}}
+{"time":"2026-03-22T10:15:30.123456Z","level":"INFO","service":"pos-server","step":"process_payment","message":"Payment processed","trace_id":"abc123","span_id":"def456","amount":50000,"method":"cash"}
 ```
 
 ## Campos
@@ -40,13 +40,14 @@ Una linea, un JSON. Sin wrapping de frameworks.
 | Campo | Siempre | Descripcion |
 |---|---|---|
 | `time` | si | ISO-8601 UTC |
-| `level` | si | fatal, error, warn, info, debug |
+| `level` | si | FATAL, ERROR, WARN, INFO, DEBUG |
 | `service` | si | Nombre del servicio/app |
 | `step` | si | Operacion que se ejecuta |
 | `message` | si | Texto legible |
 | `trace_id` | si hay TraceProvider | ID de traza OpenTelemetry |
 | `span_id` | si hay TraceProvider | ID de span OpenTelemetry |
-| `attributes` | si hay | Datos extras del contexto |
+| atributos extra | si hay | Aplanados en la raiz del JSON, no anidados |
+| `error_type`, `error_message`, `stack_trace` | en `error()` con throwable | Detalle del error, stack trace incluido |
 
 ## Consideraciones
 

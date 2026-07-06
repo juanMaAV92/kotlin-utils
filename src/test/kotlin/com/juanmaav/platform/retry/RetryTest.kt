@@ -16,6 +16,14 @@ class RetryTest {
         }
 
     @Test
+    fun `should reject maxAttempts below 1`() =
+        runTest {
+            assertFailsWith<IllegalArgumentException> {
+                retry(maxAttempts = 0) { "never" }
+            }
+        }
+
+    @Test
     fun `should retry on transient exception and succeed`() =
         runTest {
             var attempts = 0

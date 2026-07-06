@@ -4,9 +4,16 @@ import com.juanmaav.platform.context.FlowContext
 import com.juanmaav.platform.exception.PlatformException
 import com.juanmaav.platform.flow.dsl.flow
 import com.juanmaav.platform.logger.StructuredLogger
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class FlowEngineTest {
@@ -168,5 +175,91 @@ class FlowEngineTest {
             assertEquals("ERR_456", attrs["error_code"])
             assertEquals(mapOf("reason" to "out of stock"), attrs["error_details"])
             assertEquals(context.traceId, attrs["traceId"])
+        }
+
+    @Test
+    fun `should compensate parallel siblings exactly once`() =
+        runTest {
+            val compensations = AtomicInteger(0)
+
+            val okStep =
+                object : Step<TestContext> {
+                    override suspend fun execute(context: TestContext) = context
+
+                    override suspend fun onFailure(context: TestContext) {
+                        compensations.incrementAndGet()
+                    }
+                }
+
+            runCatching {
+                flow(TestContext("user-1"), logger) {
+                    parallel {
+                        step(okStep)
+                        step(FailingStep())
+                    }
+                }
+            }
+
+            assertEquals(1, compensations.get(), "sibling was compensated ${compensations.get()} times")
+        }
+
+    @Test
+    fun `should run suspending compensation when the flow is cancelled externally`() =
+        runTest {
+            val compensations = AtomicInteger(0)
+
+            val quickStep =
+                object : Step<TestContext> {
+                    override suspend fun execute(context: TestContext) = context
+
+                    override suspend fun onFailure(context: TestContext) {
+                        delay(50) // a suspending compensation must survive cancellation
+                        compensations.incrementAndGet()
+                    }
+                }
+            val slowStep =
+                object : Step<TestContext> {
+                    override suspend fun execute(context: TestContext): TestContext {
+                        delay(10_000)
+                        return context
+                    }
+                }
+
+            val job =
+                launch {
+                    runCatching {
+                        flow(TestContext("user-1"), logger) {
+                            step(quickStep)
+                            step(slowStep)
+                        }
+                    }
+                }
+            runCurrent() // let the flow reach the slow step
+            job.cancelAndJoin()
+
+            assertEquals(1, compensations.get(), "compensation should run despite cancellation")
+        }
+
+    @Test
+    fun `asyncStep with external scope should not block the flow`() =
+        runTest {
+            var asyncCompleted = false
+
+            val auditStep =
+                object : Step<TestContext> {
+                    override suspend fun execute(context: TestContext): TestContext {
+                        delay(1_000)
+                        asyncCompleted = true
+                        return context
+                    }
+                }
+
+            flow(TestContext("user-1"), logger, asyncScope = backgroundScope) {
+                asyncStep(auditStep)
+            }
+
+            assertFalse(asyncCompleted, "flow should return without waiting for the async step")
+            advanceTimeBy(2_000)
+            assertTrue(asyncCompleted, "async step should complete in the external scope")
         }
 }
