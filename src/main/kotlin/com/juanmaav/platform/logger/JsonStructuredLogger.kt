@@ -5,7 +5,15 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
-class JsonStructuredLogger(
+/**
+ * [StructuredLogger] that emits one flat JSON object per event through slf4j.
+ * All attributes land at the root level (no nesting), which plays well with
+ * Grafana / Loki / CloudWatch indexing.
+ *
+ * When [traceProvider] is set (e.g. backed by OpenTelemetry), `trace_id` and `span_id`
+ * are added to every line; otherwise a `traceId` attribute is promoted to `trace_id`.
+ */
+public class JsonStructuredLogger(
     private val serviceName: String,
     private val traceProvider: TraceProvider? = null,
 ) : StructuredLogger {
@@ -34,6 +42,7 @@ class JsonStructuredLogger(
                     mapOf(
                         "error_type" to error::class.simpleName,
                         "error_message" to error.message,
+                        "stack_trace" to error.stackTraceToString(),
                     )
             } else {
                 attributes
@@ -112,22 +121,32 @@ class JsonStructuredLogger(
         when (value) {
             null -> append("null")
             is String -> append("\"").append(escapeJson(value)).append("\"")
-            is Number, is Boolean -> append(value)
+            is Boolean -> append(value)
+            is Number -> {
+                val d = value.toDouble()
+                // NaN/Infinity are not valid JSON numbers — quote them instead of corrupting the line
+                if (d.isNaN() || d.isInfinite()) {
+                    append("\"").append(value).append("\"")
+                } else {
+                    append(value)
+                }
+            }
             else -> append("\"").append(escapeJson(value.toString())).append("\"")
         }
         return this
     }
 
     private fun escapeJson(text: String): String {
-        if (text.none { it == '"' || it == '\\' || it == '\n' || it == '\r' || it == '\t' }) return text
+        if (text.none { it == '"' || it == '\\' || it < ' ' }) return text
         return buildString(text.length + 16) {
             for (ch in text) {
-                when (ch) {
-                    '"' -> append("\\\"")
-                    '\\' -> append("\\\\")
-                    '\n' -> append("\\n")
-                    '\r' -> append("\\r")
-                    '\t' -> append("\\t")
+                when {
+                    ch == '"' -> append("\\\"")
+                    ch == '\\' -> append("\\\\")
+                    ch == '\n' -> append("\\n")
+                    ch == '\r' -> append("\\r")
+                    ch == '\t' -> append("\\t")
+                    ch < ' ' -> append("\\u").append(ch.code.toString(16).padStart(4, '0'))
                     else -> append(ch)
                 }
             }

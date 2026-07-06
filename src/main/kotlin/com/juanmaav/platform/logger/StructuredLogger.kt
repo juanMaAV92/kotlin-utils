@@ -1,32 +1,36 @@
 package com.juanmaav.platform.logger
 
-interface StructuredLogger {
-    fun fatal(
+/**
+ * Structured logging contract: every entry has a step name, a message and flat attributes.
+ * [JsonStructuredLogger] is the provided implementation.
+ */
+public interface StructuredLogger {
+    public fun fatal(
         step: String,
         message: String,
         attributes: Map<String, Any?> = emptyMap(),
     )
 
-    fun error(
+    public fun error(
         step: String,
         message: String,
         error: Throwable? = null,
         attributes: Map<String, Any?> = emptyMap(),
     )
 
-    fun warn(
+    public fun warn(
         step: String,
         message: String,
         attributes: Map<String, Any?> = emptyMap(),
     )
 
-    fun info(
+    public fun info(
         step: String,
         message: String,
         attributes: Map<String, Any?> = emptyMap(),
     )
 
-    fun debug(
+    public fun debug(
         step: String,
         message: String,
         attributes: Map<String, Any?> = emptyMap(),

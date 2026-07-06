@@ -2,14 +2,19 @@ package com.juanmaav.platform.retry
 
 import com.juanmaav.platform.exception.HttpException
 import com.juanmaav.platform.logger.StructuredLogger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import java.io.IOException
-import java.net.ConnectException
-import java.net.SocketTimeoutException
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
-suspend fun <T> retry(
+/**
+ * Runs [block] with exponential backoff, retrying only when [retryIf] accepts the exception
+ * (by default [isTransient]). The delay grows by [factor] up to [maxDelay].
+ *
+ * [CancellationException] is always rethrown immediately — cancellation is never retried.
+ */
+public suspend fun <T> retry(
     maxAttempts: Int = 3,
     initialDelay: Duration = 100.milliseconds,
     factor: Double = 2.0,
@@ -18,15 +23,16 @@ suspend fun <T> retry(
     retryIf: (Exception) -> Boolean = ::isTransient,
     block: suspend () -> T,
 ): T {
+    require(maxAttempts >= 1) { "maxAttempts must be at least 1, was $maxAttempts" }
+
     var currentDelay = initialDelay
-    var lastException: Exception? = null
 
     repeat(maxAttempts) { attempt ->
         try {
             return block()
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            lastException = e
-
             if (!retryIf(e)) throw e
             if (attempt == maxAttempts - 1) throw e
 
@@ -47,13 +53,15 @@ suspend fun <T> retry(
         }
     }
 
-    throw lastException!!
+    error("unreachable: the last attempt either returns or throws")
 }
 
-fun isTransient(e: Exception): Boolean =
+/**
+ * Default retry predicate: connection/IO errors and transient HTTP statuses
+ * (408, 429, 500, 502, 503, 504). Client errors like 400/401/403 are not retried.
+ */
+public fun isTransient(e: Exception): Boolean =
     when (e) {
-        is SocketTimeoutException -> true
-        is ConnectException -> true
         is IOException -> true
         is HttpException -> e.httpStatus in TRANSIENT_HTTP_CODES
         else -> false

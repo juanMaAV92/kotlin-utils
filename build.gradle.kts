@@ -6,14 +6,19 @@ plugins {
 }
 
 group = "com.juanmaav"
-version = "0.1.0"
+// CI passes -PreleaseVersion derived from the git tag; local builds use the fallback
+version = providers.gradleProperty("releaseVersion").getOrElse("0.2.0")
+
+kotlin {
+    explicitApi()
+}
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     implementation("org.slf4j:slf4j-api:2.0.17")
 
     testImplementation(kotlin("test"))
